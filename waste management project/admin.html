@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin Dashboard - Clean India Report</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+  <style>
+    body {
+      background-color: #f0f4f7;
+      font-family: "Segoe UI", sans-serif;
+      padding: 20px;
+    }
+    .container {
+      max-width: 1000px;
+      background: white;
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0px 4px 8px rgba(0,0,0,0.1);
+    }
+    .table img {
+      width: 60px;
+      border-radius: 4px;
+    }
+    h1 {
+      color: #2e7d32;
+      font-weight: bold;
+    }
+    button {
+      margin: 5px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🧹 Clean India Report - Admin Dashboard</h1>
+    <p class="text-muted">View and manage all submitted reports here.</p>
+    <hr>
+
+    <!-- Admin Login -->
+    <div id="loginSection">
+      <h4>Admin Login</h4>
+      <input type="password" id="adminPass" class="form-control" placeholder="Enter Admin Password" />
+      <button id="loginBtn" class="btn btn-success mt-3">Login</button>
+      <p class="text-danger mt-2" id="loginError" style="display:none;">Incorrect password!</p>
+    </div>
+
+    <!-- Dashboard Section -->
+    <div id="dashboard" style="display:none;">
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <input type="text" id="search" class="form-control w-50" placeholder="🔍 Search reports..." />
+        <div>
+          <button class="btn btn-danger" id="deleteAll">🗑 Delete All Reports</button>
+          <button class="btn btn-secondary" id="downloadCSV">📄 Download CSV</button>
+        </div>
+      </div>
+
+      <table class="table table-striped table-bordered" id="reportTable">
+        <thead class="table-success">
+          <tr>
+            <th>#</th>
+            <th>Name</th>
+            <th>Description</th>
+            <th>Photo</th>
+            <th>Location</th>
+            <th>Time</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody id="reportBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <script>
+    const ADMIN_PASSWORD = "2012"; // Change your password here
+
+    const loginSection = document.getElementById("loginSection");
+    const dashboard = document.getElementById("dashboard");
+    const loginError = document.getElementById("loginError");
+
+    document.getElementById("loginBtn").onclick = () => {
+      const enteredPass = document.getElementById("adminPass").value.trim();
+      if (enteredPass === ADMIN_PASSWORD) {
+        loginSection.style.display = "none";
+        dashboard.style.display = "block";
+        loadReports();
+      } else {
+        loginError.style.display = "block";
+      }
+    };
+
+    // Load reports from localStorage
+    function loadReports() {
+      const reports = JSON.parse(localStorage.getItem("reports")) || [];
+      const tbody = document.getElementById("reportBody");
+      tbody.innerHTML = "";
+
+      if (reports.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="7" class="text-center text-muted">No reports found</td></tr>`;
+        return;
+      }
+
+      reports.forEach((r, index) => {
+        const row = document.createElement("tr");
+        row.innerHTML = `
+          <td>${index + 1}</td>
+          <td>${r.name}</td>
+          <td>${r.desc}</td>
+          <td>${r.photo ? `<img src="${r.photo}" />` : "No Image"}</td>
+          <td><a href="https://www.google.com/maps?q=${r.lat},${r.lng}" target="_blank">View</a></td>
+          <td>${r.time}</td>
+          <td><button class="btn btn-sm btn-outline-danger" onclick="deleteReport(${index})">Delete</button></td>
+        `;
+        tbody.appendChild(row);
+      });
+    }
+
+    // Delete a single report
+    function deleteReport(index) {
+      const reports = JSON.parse(localStorage.getItem("reports")) || [];
+      reports.splice(index, 1);
+      localStorage.setItem("reports", JSON.stringify(reports));
+      loadReports();
+    }
+
+    // Delete all reports
+    document.getElementById("deleteAll").onclick = () => {
+      if (confirm("Are you sure you want to delete all reports?")) {
+        localStorage.removeItem("reports");
+        loadReports();
+      }
+    };
+
+    // Search reports
+    document.getElementById("search").addEventListener("input", function() {
+      const searchTerm = this.value.toLowerCase();
+      const rows = document.querySelectorAll("#reportBody tr");
+      rows.forEach(row => {
+        const text = row.innerText.toLowerCase();
+        row.style.display = text.includes(searchTerm) ? "" : "none";
+      });
+    });
+
+    // Download CSV
+    document.getElementById("downloadCSV").onclick = () => {
+      const reports = JSON.parse(localStorage.getItem("reports")) || [];
+      if (reports.length === 0) return alert("No reports to download.");
+
+      let csv = "Name,Description,Latitude,Longitude,Time\n";
+      reports.forEach(r => {
+        csv += `"${r.name}","${r.desc}",${r.lat},${r.lng},"${r.time}"\n`;
+      });
+
+      const blob = new Blob([csv], { type: "text/csv" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "CleanIndiaReports.csv";
+      a.click();
+      URL.revokeObjectURL(url);
+    };
+  </script>
+</body>
+</html>
